@@ -1,0 +1,4 @@
+pettingzoo[sisl]
+torch
+numpy
+gymnasium
