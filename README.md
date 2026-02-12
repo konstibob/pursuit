@@ -1,69 +1,72 @@
 # ReadMe: Multi-Agent Surround Experiments
 
-## 1. Einleitung
-Alle Experimente verwenden ein Q-Learning-/Deep RL-basiertes Training. Die Experimente variieren hauptsächlich die **Mapgröße**, die **Surround-Option**, **Freeze Evaders**, und **n_catch**. Andere Parameter wie `n_pursuers` und `n_evaders` werden automatisch an die Mapgröße angepasst.
+## 1. Introduction
+This project uses QMIX (Multi-Agent Deep Reinforcement Learning) to train agents in the SISL Pursuit environment. The experiments primarily vary **grid size**, **capture constraints** (Surround vs. Touch), and **evader dynamics** (Freeze vs. Active). Parameters such as `n_pursuers` and `n_evaders` are automatically scaled based on the grid size.
 
 ---
 
-## 2. Parameter Erklärung
+## 2. Parameter Explanation
 
-| Parameter        | Beschreibung                                                                                  |
-| ---------------- | -------------------------------------------------------------------------------------------- |
-| **Mapgröße**       | Größe des Spielfelds in X × Y (z. B. 8×8, 12×12, 16×16). Beeinflusst die Anzahl der Agenten. |
-| **Surround**       | Wenn `True`, müssen die Verfolger die Evader umzingeln, um sie zu fangen.                   |
-| **Freeze Evaders** | Wenn `True`, bewegen sich die Evaders nicht. Wenn `False`, bewegen sie sich zufällig.      |
-| **n_pursuers**     | Anzahl der Verfolger (Pursuers). Wird automatisch nach Mapgröße angepasst.                  |
-| **n_evaders**      | Anzahl der zu fassenden Evaders. Wird automatisch nach Mapgröße angepasst.                   |
-| **n_catch**        | Anzahl an Verfolgern, die nötig sind, um einen Evader zu fangen. (z. B. 2 oder 4)          |
-| **Mapgröße** | Größe des Grids in X- und Y-Richtung.                                                     |
----
-
-## 3. Experimente
-
-| Experiment # | Mapgröße | Surround | Freeze Evaders | n_pursuers | n_evaders |
-| ------------ | -------- | -------- | -------------- | ---------- | --------- |
-| 1            | 8×8      | True     | True           | 4          | 15        |
-| 2            | 8×8      | True     | False          | 4          | 15        |
-| 3            | 8×8      | False    | True           | 4          | 15        |
-| 4            | 8×8      | False    | False          | 4          | 15        |
-| 5            | 12×12    | True     | True           | 6          | 22        |
-| 6            | 12×12    | True     | False          | 6          | 22        |
-| 7            | 12×12    | False    | True           | 6          | 22        |
-| 8            | 12×12    | False    | False          | 6          | 22        |
-| 9            | 16×16    | True     | True           | 8          | 30        |
-| 10           | 16×16    | True     | False          | 8          | 30        |
-| 11           | 16×16    | False    | True           | 8          | 30        |
-| 12           | 16×16    | False    | False          | 8          | 30        |
-
-
-
-**Hinweise zu Experimenten:**
-- `n_pursuers` und `n_evaders` passen sich automatisch an die Mapgröße an, keine extra Experimente nötig.  
-- Jedes Experiment wird für x viele Episoden durchgeführt, um Lerntrends sichtbar zu machen.  
-- `n_catch` wird in jedem Szenario entweder 2 oder 4 sein, um die Effektivität von Surrounding unter verschiedenen Bedingungen zu vergleichen.  
+| Parameter | Description |
+| :--- | :--- |
+| **Grid Size** | Size of the environment in X × Y (e.g., 8x8, 12x12, 16x16). Scales agent counts. |
+| **Surround** | If `True`, agents must surround an evader to capture it. |
+| **Freeze Evaders** | If `True`, evaders are stationary. If `False`, they move randomly. |
+| **n_pursuers** | Number of pursuer agents (automatically scaled). |
+| **n_evaders** | Number of evaders to capture (automatically scaled). |
+| **n_catch** | Number of agents required to catch an evader (e.g., 2 or 4). |
 
 ---
 
-## 4. Ideen für Grafiken
+## 3. Execution Guide
 
-### Reward über Alle Experimente
-- **Lineplot:**  
-- **X-Achse:** Episode  
-- **Y-Achse:** Reward pro Episode  
-- **Linien:** Verschiedene Experimente (z. B. unterschiedliche Mapgrößen, Surround True/False, Freeze True/False)  
-- **Zweck:** Zeigt, wie schnell die Agenten lernen und ob Surround/Taktik überhaupt effektiv ist.  
-- **Tip:** Mehrere Linien pro Plot, Legende mit Experiment-Nummern oder Parameter-Kombinationen.
+You can run the training and evaluation via the main entry point:
+
+```bash
+python main.py
+```
+
+### Options:
+- **Rendering**: You will be asked if you want to view the simulation window (`y/n`).
+- **Experiment Selection**: 
+    - `1-12`: Run a specific experiment configuration.
+    - `0`: **Run All Experiments** - Executes all 12 experiments sequentially.
+
 ---
 
-### Vergleich von n_catch = 2 vs n_catch = 4
-- **Lineplot:**  
-  - **X-Achse:** Episode  
-  - **Y-Achse:** Reward gemittelt über alle experimente? 
-- **Zweck:** Zeigt, wie viel einfacher oder schwieriger Surround wird, wenn mehr Agenten nötig sind, um einen Evader zu fangen.
+## 4. Study Design (12 Experiments)
+
+| ID | Grid | Type | Dynamics |
+| :--- | :--- | :--- | :--- |
+| **1-4** | 8x8 | Surround/Touch | Freeze/Active |
+| **5-8** | 12x12 | Surround/Touch | Freeze/Active |
+| **9-12** | 16x16 | Surround/Touch | Freeze/Active |
+
 ---
 
-### Vergleich Freeze Evaders True vs False
-- **Lineplot:**  
-  - **X-Achse:** Episode 
-  - **Y-Achse:** Reward   
-- **Zweck:** Zeigt, wie die Bewegung der Evaders das Lernen beeinflusst – lernen Agenten schneller, wenn Evaders stillstehen
+## 5. Results & Data Structure
+
+All results are stored in the `trained_agents/` directory:
+- **`metrics.csv`**: Full training progress log (Episode, Steps, Reward, Epsilon, Loss).
+- **`evaluation_summary.csv`**: Summary of periodic evaluation phases.
+- **`evaluations/`**: Detailed episode logs for each specific evaluation run.
+- **`model.pt`**: The **best model** found so far (updated whenever an evaluation beats the previous best).
+- **`config.json`**: The frozen configuration used for the run.
+
+---
+
+## 6. Automated Analysis & Visualization
+
+Once experiments are complete, use the visualization script to generate outcome charts:
+
+```bash
+python graph.py
+```
+
+This script generates plots in the `graphs/` directory, organized as:
+- **`mapsize/`**: Compares task difficulty (Surround vs. Touch) for a fixed grid size.
+- **`task/`**: Compares scaling (8x8 -> 16x16) for a fixed task type.
+- **`stability/`**: Individual loss plots for every experiment to verify convergence.
+
+---
+*Created for the RoboticSensing Module.*
