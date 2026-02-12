@@ -20,32 +20,21 @@ Alle Experimente verwenden ein Q-Learning-/Deep RL-basiertes Training. Die Exper
 
 ## 3. Experimente
 
-| Experiment # | Mapgröße | Surround | Freeze Evaders | n_pursuers | n_evaders | n_catch |
-| ------------ | -------- | -------- | -------------- | ---------- | --------- | ------- |
-| 1            | 8×8      | True     | True           | 4          | 15        | 2       |
-| 2            | 8×8      | True     | True           | 4          | 15        | 4       |
-| 3            | 8×8      | True     | False          | 4          | 15        | 2       |
-| 4            | 8×8      | True     | False          | 4          | 15        | 4       |
-| 5            | 8×8      | False    | True           | 4          | 15        | 2       |
-| 6            | 8×8      | False    | True           | 4          | 15        | 4       |
-| 7            | 8×8      | False    | False          | 4          | 15        | 2       |
-| 8            | 8×8      | False    | False          | 4          | 15        | 4       |
-| 9            | 12×12    | True     | True           | 6          | 22        | 2       |
-| 10           | 12×12    | True     | True           | 6          | 22        | 4       |
-| 11           | 12×12    | True     | False          | 6          | 22        | 2       |
-| 12           | 12×12    | True     | False          | 6          | 22        | 4       |
-| 13           | 12×12    | False    | True           | 6          | 22        | 2       |
-| 14           | 12×12    | False    | True           | 6          | 22        | 4       |
-| 15           | 12×12    | False    | False          | 6          | 22        | 2       |
-| 16           | 12×12    | False    | False          | 6          | 22        | 4       |
-| 17           | 16×16    | True     | True           | 8          | 30        | 2       |
-| 18           | 16×16    | True     | True           | 8          | 30        | 4       |
-| 19           | 16×16    | True     | False          | 8          | 30        | 2       |
-| 20           | 16×16    | True     | False          | 8          | 30        | 4       |
-| 21           | 16×16    | False    | True           | 8          | 30        | 2       |
-| 22           | 16×16    | False    | True           | 8          | 30        | 4       |
-| 23           | 16×16    | False    | False          | 8          | 30        | 2       |
-| 24           | 16×16    | False    | False          | 8          | 30        | 4       |
+| Experiment # | Mapgröße | Surround | Freeze Evaders | n_pursuers | n_evaders |
+| ------------ | -------- | -------- | -------------- | ---------- | --------- |
+| 1            | 8×8      | True     | True           | 4          | 15        |
+| 2            | 8×8      | True     | False          | 4          | 15        |
+| 3            | 8×8      | False    | True           | 4          | 15        |
+| 4            | 8×8      | False    | False          | 4          | 15        |
+| 5            | 12×12    | True     | True           | 6          | 22        |
+| 6            | 12×12    | True     | False          | 6          | 22        |
+| 7            | 12×12    | False    | True           | 6          | 22        |
+| 8            | 12×12    | False    | False          | 6          | 22        |
+| 9            | 16×16    | True     | True           | 8          | 30        |
+| 10           | 16×16    | True     | False          | 8          | 30        |
+| 11           | 16×16    | False    | True           | 8          | 30        |
+| 12           | 16×16    | False    | False          | 8          | 30        |
+
 
 
 **Hinweise zu Experimenten:**
@@ -77,4 +66,4 @@ Alle Experimente verwenden ein Q-Learning-/Deep RL-basiertes Training. Die Exper
 - **Lineplot:**  
   - **X-Achse:** Episode 
   - **Y-Achse:** Reward   
-- **Zweck:** Zeigt, wie die Bewegung der Evaders das Lernen beeinflusst – lernen Agenten schneller, wenn Evaders stillstehen?
+- **Zweck:** Zeigt, wie die Bewegung der Evaders das Lernen beeinflusst – lernen Agenten schneller, wenn Evaders stillstehen

@@ -37,14 +37,19 @@ class QMIXAgent:
         self.steps_done = 0
         self.epsilon = self.config["epsilon_start"]
         
-    def select_actions(self, obs):
+    def select_actions(self, obs, evaluate=False, eval_epsilon=0.0):
         """
         Epsilon-greedy action selection.
         obs: (n_agents, obs_dim) numpy array
+        evaluate: if True, use eval_epsilon (default 0.0 for greedy)
         """
-        self.update_epsilon()
-        
-        if random.random() < self.epsilon:
+        if not evaluate:
+            self.update_epsilon()
+            eps = self.epsilon
+        else:
+            eps = eval_epsilon
+            
+        if random.random() < eps:
             return np.random.randint(0, self.n_actions, self.n_agents)
         
         with torch.no_grad():
@@ -85,23 +90,15 @@ class QMIXAgent:
         # --- Computations ---
         
         # 1. Get current Q_tot
-        # Get Q values for all actions: (B, N, n_actions)
         q_vals = self.agent_net(obs) 
-        # Select Q values for chosen actions: (B, N, 1)
         chosen_action_q_vals = q_vals.gather(2, actions.unsqueeze(2)).squeeze(2)
-        # Mix them: (B, 1)
         q_tot = self.mixer(chosen_action_q_vals, state)
         
         # 2. Get Target Q_tot (Double DQN style)
         with torch.no_grad():
-            # Get next Q values from target network
             target_q_vals = self.target_agent_net(next_obs)
-            # Use online network to select best actions (Double DQN)
-            # argmax over actions dim
             best_actions = self.agent_net(next_obs).argmax(dim=2).unsqueeze(2)
-            # Gather target Qs
             target_chosen_q_vals = target_q_vals.gather(2, best_actions).squeeze(2)
-            # Mix target Qs
             target_q_tot = self.target_mixer(target_chosen_q_vals, next_state)
             
             # Bellman Target
@@ -123,3 +120,22 @@ class QMIXAgent:
             self.target_mixer.load_state_dict(self.mixer.state_dict())
             
         return loss.item()
+
+    def save_model(self, path):
+        torch.save({
+            "agent_net": self.agent_net.state_dict(),
+            "mixer": self.mixer.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+            "epsilon": self.epsilon
+        }, path)
+
+    def load_model(self, path):
+        checkpoint = torch.load(path, map_location=self.device)
+        self.agent_net.load_state_dict(checkpoint["agent_net"])
+        self.mixer.load_state_dict(checkpoint["mixer"])
+        self.optimizer.load_state_dict(checkpoint["optimizer"])
+        self.epsilon = checkpoint["epsilon"]
+        
+        # Update target nets as well
+        self.target_agent_net.load_state_dict(self.agent_net.state_dict())
+        self.target_mixer.load_state_dict(self.mixer.state_dict())

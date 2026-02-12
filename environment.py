@@ -6,11 +6,21 @@ Handles observation flattening and global state construction.
 import numpy as np
 import torch
 from pettingzoo.sisl import pursuit_v4
-from config import ENV_CONFIG
 
 class PursuitEnvWrapper:
-    def __init__(self):
-        self.env = pursuit_v4.parallel_env(**ENV_CONFIG)
+    def __init__(self, config):
+        """
+        Initialize environment with full configuration dictionary.
+        """
+        # Remove description keys if they accidentally got passed (like 'id', 'name')
+        # pursuit_v4.parallel_env only accepts specific args
+        valid_keys = ["max_cycles", "x_size", "y_size", "shared_reward", "n_evaders", "n_pursuers", 
+                      "obs_range", "n_catch", "freeze_evaders", "tag_reward", "catch_reward", 
+                      "urgency_reward", "surround", "constraint_window", "render_mode"]
+        
+        env_kwargs = {k: v for k, v in config.items() if k in valid_keys}
+        
+        self.env = pursuit_v4.parallel_env(**env_kwargs)
         self.env.reset()
         
         # Get dimensions
@@ -45,8 +55,7 @@ class PursuitEnvWrapper:
         obs, state = self._process_obs(obs_dict)
         
         # Extract rewards (shared global reward)
-        # In pursuit_v4, rewards are shared if configured, but let's take mean or sum
-        # usually they are identical for shared_reward=True
+        # In pursuit_v4, rewards are shared if configured (default True), but let's take mean or sum
         reward = sum(rewards_dict.values()) / self.n_agents
         
         # Check done
