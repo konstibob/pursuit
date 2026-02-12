@@ -5,20 +5,8 @@ This project uses QMIX (Multi-Agent Deep Reinforcement Learning) to train agents
 
 ---
 
-## 2. Parameter Explanation
 
-| Parameter | Description |
-| :--- | :--- |
-| **Grid Size** | Size of the environment in X × Y (e.g., 8x8, 12x12, 16x16). Scales agent counts. |
-| **Surround** | If `True`, agents must surround an evader to capture it. |
-| **Freeze Evaders** | If `True`, evaders are stationary. If `False`, they move randomly. |
-| **n_pursuers** | Number of pursuer agents (automatically scaled). |
-| **n_evaders** | Number of evaders to capture (automatically scaled). |
-| **n_catch** | Number of agents required to catch an evader (e.g., 2 or 4). |
-
----
-
-## 3. Execution Guide
+## 2. Execution Guide
 
 You can run the training and evaluation via the main entry point:
 
@@ -34,9 +22,9 @@ python main.py
 
 ---
 
-## 4. Study Design (12 Experiments)
+## 3. Study Design (12 Experiments)
 
-| ID | Grid | Type | Dynamics |
+| ID | Grid | Kill Enemies with | Enemy Movement |
 | :--- | :--- | :--- | :--- |
 | **1-4** | 8x8 | Surround/Touch | Freeze/Active |
 | **5-8** | 12x12 | Surround/Touch | Freeze/Active |
@@ -44,7 +32,7 @@ python main.py
 
 ---
 
-## 5. Results & Data Structure
+## 4. Results & Data Structure
 
 All results are stored in the `trained_agents/` directory:
 - **`metrics.csv`**: Full training progress log (Episode, Steps, Reward, Epsilon, Loss).
@@ -55,7 +43,7 @@ All results are stored in the `trained_agents/` directory:
 
 ---
 
-## 6. Automated Analysis & Visualization
+## 5. Automated Analysis & Visualization
 
 Once experiments are complete, use the visualization script to generate outcome charts:
 
