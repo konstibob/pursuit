@@ -10,9 +10,7 @@ sns.set_theme(style="whitegrid")
 plt.rcParams.update({'font.size': 12})
 
 def load_experiments(base_dir="trained_agents"):
-    """
-    Scans the trained_agents directory and loads config and results for each experiment.
-    """
+
     experiments = []
     # Get all subdirectories in base_dir
     dirs = [d for d in os.listdir(base_dir) if os.path.isdir(os.path.join(base_dir, d))]
@@ -52,10 +50,7 @@ def load_experiments(base_dir="trained_agents"):
     return experiments
 
 def plot_perspective_a(experiments, output_dir="graphs"):
-    """
-    Scaling Comparison (by Experiment Type).
-    Outputs into 'graphs/task/' folder.
-    """
+
     types = ["surround_freeze", "surround_active", "touch_freeze", "touch_active"]
     scaling_dir = os.path.join(output_dir, "task")
     os.makedirs(scaling_dir, exist_ok=True)
@@ -84,10 +79,7 @@ def plot_perspective_a(experiments, output_dir="graphs"):
         print(f"Saved {path}")
 
 def plot_perspective_b(experiments, output_dir="graphs"):
-    """
-    Task Comparison (by Grid Size).
-    Outputs into 'graphs/mapsize/' folder.
-    """
+
     grids = sorted(list(set([(e["x_size"], e["y_size"]) for e in experiments])))
     mapsize_dir = os.path.join(output_dir, "mapsize")
     os.makedirs(mapsize_dir, exist_ok=True)
@@ -112,10 +104,7 @@ def plot_perspective_b(experiments, output_dir="graphs"):
         print(f"Saved {path}")
 
 def plot_training_stability(experiments, output_dir="graphs"):
-    """
-    Plots training loss for each experiment to check stability.
-    Outputs into 'graphs/stability/' folder.
-    """
+
     stability_dir = os.path.join(output_dir, "stability")
     os.makedirs(stability_dir, exist_ok=True)
     

@@ -1,7 +1,3 @@
-"""
-Configuration for custom QMIX on PettingZoo pursuit_v4.
-"""
-
 import torch
 
 # Experiment Definitions (1-12)

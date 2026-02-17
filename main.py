@@ -1,8 +1,3 @@
-"""
-Main Training Loop for QMIX on PettingZoo Pursuit.
-Includes interactive experiment selection and existing model detection.
-"""
-
 from environment import PursuitEnvWrapper
 from buffer import ReplayBuffer
 from agent import QMIXAgent

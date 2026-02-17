@@ -58,3 +58,31 @@ This script generates plots in the `graphs/` directory, organized as:
 
 ---
 *Created for the RoboticSensing Module.*
+
+---Grade nutze ich noch nen value, der für die execution phase trotzdem random values nutzt. Inwiefern ist das so richtig??? 
+
+- in der präsi nochmal genauer das konzept qmix erkläeren und wie genau die agenten miteinander reden?? 
+
+- global state??? 
+
+- kleiner report 4-8 seiten im märz abgeben! 
+
+- Sturktur der Neuronalen Netzwerken, wie genau mixer netzwerk vs agenten netzwerke ??? 
+
+- probieren zu visualiesern vllt sogar während des trainigs mit web tools
+
+- Future work im paper inkludieren! 
+
+- Präsentation 30 min etwa 
+
+500 vs 200 mal laufen?? 
+
+
+
+
+ANDERE IDEEN: 
+
+- distrubution shift -> Andere umgebung als die auf der ich trainiert habe, wie gut performt der agent dann? 
+Wie hoch ist die performanceeinbußung? 
+
+-

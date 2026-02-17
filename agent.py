@@ -1,7 +1,3 @@
-"""
-QMIX Agent Logic.
-"""
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -38,11 +34,8 @@ class QMIXAgent:
         self.epsilon = self.config["epsilon_start"]
         
     def select_actions(self, obs, evaluate=False, eval_epsilon=0.0):
-        """
-        Epsilon-greedy action selection.
-        obs: (n_agents, obs_dim) numpy array
-        evaluate: if True, use eval_epsilon (default 0.0 for greedy)
-        """
+        
+        #Epsilon-greedy action selection.
         if not evaluate:
             self.update_epsilon()
             eps = self.epsilon
@@ -86,8 +79,6 @@ class QMIXAgent:
         next_obs = torch.FloatTensor(next_obs).to(self.device)# (B, N, O)
         next_state = torch.FloatTensor(next_state).to(self.device) # (B, S)
         done = torch.FloatTensor(done).to(self.device).reshape(-1, 1)        # (B, 1)
-        
-        # --- Computations ---
         
         # 1. Get current Q_tot
         q_vals = self.agent_net(obs) 
