@@ -15,16 +15,16 @@ class QMIXAgent:
         self.n_agents = n_agents
         self.n_actions = n_actions
         
-        # Initialize Networks
-        self.agent_net = AgentNetwork(obs_dim, self.config["hidden_dim"], n_actions).to(self.device)
-        self.target_agent_net = AgentNetwork(obs_dim, self.config["hidden_dim"], n_actions).to(self.device)
+        self.agent_ids = torch.eye(n_agents).to(self.device)
+        
+        self.agent_net = AgentNetwork(obs_dim + n_agents, self.config["hidden_dim"], n_actions).to(self.device)
+        self.target_agent_net = AgentNetwork(obs_dim + n_agents, self.config["hidden_dim"], n_actions).to(self.device)
         self.target_agent_net.load_state_dict(self.agent_net.state_dict())
         
         self.mixer = QMatrixMixer(n_agents, state_dim, self.config["mixing_embed_dim"]).to(self.device)
         self.target_mixer = QMatrixMixer(n_agents, state_dim, self.config["mixing_embed_dim"]).to(self.device)
         self.target_mixer.load_state_dict(self.mixer.state_dict())
         
-        # Optimizer (optimize both agent net and mixer)
         self.optimizer = optim.Adam(
             list(self.agent_net.parameters()) + list(self.mixer.parameters()), 
             lr=self.config["lr"]
@@ -34,8 +34,6 @@ class QMIXAgent:
         self.epsilon = self.config["epsilon_start"]
         
     def select_actions(self, obs, evaluate=False, eval_epsilon=0.0):
-        
-        #Epsilon-greedy action selection.
         if not evaluate:
             self.update_epsilon()
             eps = self.epsilon
@@ -47,7 +45,8 @@ class QMIXAgent:
         
         with torch.no_grad():
             obs_t = torch.FloatTensor(obs).to(self.device)
-            q_vals = self.agent_net(obs_t)
+            input_t = torch.cat([obs_t, self.agent_ids], dim=-1)
+            q_vals = self.agent_net(input_t)
             actions = q_vals.argmax(dim=1).cpu().numpy()
             return actions
 
@@ -66,46 +65,41 @@ class QMIXAgent:
             return 0.0
             
         self.steps_done += 1
-        
-        # Sample Batch
         batch = buffer.sample(self.config["batch_size"])
         obs, state, actions, reward, next_obs, next_state, done = batch
+        bs = self.config["batch_size"]
         
-        # Convert to Tensor
-        obs = torch.FloatTensor(obs).to(self.device)          # (B, N, O)
-        state = torch.FloatTensor(state).to(self.device)      # (B, S)
-        actions = torch.LongTensor(actions).to(self.device)   # (B, N)
-        reward = torch.FloatTensor(reward).to(self.device).reshape(-1, 1)    # (B, 1)
-        next_obs = torch.FloatTensor(next_obs).to(self.device)# (B, N, O)
-        next_state = torch.FloatTensor(next_state).to(self.device) # (B, S)
-        done = torch.FloatTensor(done).to(self.device).reshape(-1, 1)        # (B, 1)
+        obs = torch.FloatTensor(obs).to(self.device)
+        state = torch.FloatTensor(state).to(self.device)
+        actions = torch.LongTensor(actions).to(self.device)
+        reward = torch.FloatTensor(reward).to(self.device).reshape(-1, 1)
+        next_obs = torch.FloatTensor(next_obs).to(self.device)
+        next_state = torch.FloatTensor(next_state).to(self.device)
+        done = torch.FloatTensor(done).to(self.device).reshape(-1, 1)
         
-        # 1. Get current Q_tot
-        q_vals = self.agent_net(obs) 
+        ids = self.agent_ids.unsqueeze(0).expand(bs, -1, -1)
+        
+        q_input = torch.cat([obs, ids], dim=-1)
+        q_vals = self.agent_net(q_input)
         chosen_action_q_vals = q_vals.gather(2, actions.unsqueeze(2)).squeeze(2)
         q_tot = self.mixer(chosen_action_q_vals, state)
         
-        # 2. Get Target Q_tot (Double DQN style)
         with torch.no_grad():
-            target_q_vals = self.target_agent_net(next_obs)
-            best_actions = self.agent_net(next_obs).argmax(dim=2).unsqueeze(2)
+            next_q_input = torch.cat([next_obs, ids], dim=-1)
+            target_q_vals = self.target_agent_net(next_q_input)
+            best_actions = self.agent_net(next_q_input).argmax(dim=2).unsqueeze(2)
             target_chosen_q_vals = target_q_vals.gather(2, best_actions).squeeze(2)
             target_q_tot = self.target_mixer(target_chosen_q_vals, next_state)
-            
-            # Bellman Target
             loss_target = reward + self.config["gamma"] * (1 - done) * target_q_tot
             
-        # 3. Loss
         loss = F.mse_loss(q_tot, loss_target)
         
-        # 4. Optimize
         self.optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.agent_net.parameters(), self.config["grad_norm_clip"])
         torch.nn.utils.clip_grad_norm_(self.mixer.parameters(), self.config["grad_norm_clip"])
         self.optimizer.step()
         
-        # 5. Update Target Networks
         if self.steps_done % self.config["target_update_freq"] == 0:
             self.target_agent_net.load_state_dict(self.agent_net.state_dict())
             self.target_mixer.load_state_dict(self.mixer.state_dict())

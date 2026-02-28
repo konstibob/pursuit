@@ -1,0 +1,124 @@
+\documentclass[sigconf,screen]{acmart}
+
+\setcopyright{none}
+\settopmatter{printacmref=false,printfolios=true}
+
+\acmConference{}{}{}
+\acmBooktitle{}
+\acmPrice{}
+\acmDOI{}
+\acmISBN{}
+\acmYear{2026}
+\copyrightyear{2026}
+
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\pagestyle{plain}
+
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{balance}
+\usepackage{url}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  columns=fullflexible,
+  backgroundcolor=\color[gray]{0.97},
+}
+
+\title{Solving Pursuit with QMIX}
+
+\author{Konstantin Bobenko}
+\affiliation{
+  \institution{Hasso Plattner Institute, University of Potsdam}
+  \country{Germany}
+}
+
+\renewcommand{\shortauthors}{Bobenko}
+\renewcommand{\shorttitle}{Solving Pursuit with QMIX}
+
+\begin{abstract}
+    Coordinating multiple agents in environments with sparse rewards remains a significant challenge in reinforcement learning. This paper explores the application of QMIX, a monotonic value function factorization method, to the Multi-Agent Pursuit problem. We evaluate how the Centralized Training, Decentralized Execution (CTDE) paradigm allows agents to learn collaborative behaviors while maintaining operational independence. Our results demonstrate the scalability of QMIX across varying environment complexities and its ability to resolve the multi-agent credit assignment problem.
+\end{abstract}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+Multi-Agent Reinforcement Learning (MARL) has emerged as a critical field for solving complex tasks that require collective intelligence, ranging from autonomous robotic swarms to distributed sensor networks. However, applying deep reinforcement learning to multi-agent settings introduces unique theoretical and practical challenges. The two most prominent hurdles are the \textit{non-stationarity} of the environment—where an agent's optimal policy changes as other agents learn—and the \textit{multi-agent credit assignment} problem, which involves determining the specific contribution of each agent to a shared global reward.
+
+The Pursuit-Evasion domain, specifically the SISL Pursuit environment, provides a rich benchmark for these challenges. In this task, multiple pursuers must coordinate their movements to trap one or more evaders. This requires not just individual skill but sophisticated spatial coordination, as rewards are typically only granted when the evaders are surrounded according to specific geometric constraints. 
+
+Independent Q-Learning (IQL), while simple to implement, often fails in these domains because it treats other agents as part of a non-stationary environment, leading to a lack of convergence. Furthermore, IQL cannot inherently capture the inter-agent dependencies required for high-level coordination. This paper provides an empirical evaluation of QMIX \cite{rashid2018qmix}—a state-of-the-art value function factorization method—on the SISL Pursuit task. We examine the scalability of this approach across different grid sizes and its robustness when facing active, intelligent evaders, demonstrating how the Centralized Training, Decentralized Execution (CTDE) paradigm effectively bridges the gap between local perception and global coordination.
+
+\section{Background \& Problem Formulation}
+We formalize the Multi-Agent Pursuit task as a Decentralized Partially Observable Markov Decision Process (Dec-POMDP), which can be defined by the tuple $G = \langle S, A, P, R, \Omega, O, N, \gamma \rangle$.
+
+\begin{itemize}[leftmargin=*]
+    \item $S$ is the global state space representing all agent and evader coordinates.
+    \item $A$ is the joint action space. Each agent $a \in \{1, \dots, N\}$ chooses an action $u^a \in U$.
+    \item $P$ is the state transition function $P(s' | s, \mathbf{u})$.
+    \item $R$ is the global reward function $R(s, \mathbf{u})$, shared by all agents.
+    \item $\Omega$ is the observation space. Due to partial observability, each agent $a$ receives an observation $z^a \in \Omega$ according to the observation function $O(s, a)$.
+    \item $\gamma \in [0, 1)$ is the discount factor.
+\end{itemize}
+
+\subsection{The Pursuit Task}
+In our configuration, the environment consists of a discrete grid (typically $8 \times 8$, $12 \times 12$, or $16 \times 16$). The pursuers have a limited observation range, perceiving only a $7 \times 7$ grid centered on their current position. This partial observability means that agents must learn to navigate and coordinate without knowing the full state of the environment during execution.
+
+The available actions are discrete: $\{\text{Up, Down, Left, Right, Stay}\}$. A capture occurs based on two configurable conditions:
+\begin{enumerate}
+    \item \textbf{$n\_catch$}: An evader is caught if at least $n$ pursuers are adjacent to it.
+    \item \textbf{$surround$}: An evader is caught if it is completely surrounded by pursuers or grid boundaries.
+\end{enumerate}
+
+\subsection{Reward Structure}
+The reward signal is sparse and primarily collaborative. Agents receive a significant positive reward (e.g., $+5$) for a successful capture and a small negative "urgency" penalty (e.g., $-0.1$) per time step to encourage efficiency. This structure necessitates a credit assignment mechanism that can attribute the capture reward to the joint actions of the participating pursuers.
+
+\section{Methodology}
+Our implementation follows the QMIX architecture, which addresses the collaborative nature of the Pursuit task by factorizing the joint action-value function $Q_{tot}$ into a monotonic combination of individual agent utilities $Q^a$.
+
+\subsection{Agent Architecture}
+Each pursuer is controlled by a Deep Q-Network (DQN) that shares the same weights across all agents (Parameter Sharing) to improve sample efficiency. The network consists of several fully connected layers. To distinguish between agents and allow for specialized behaviors (such as one agent "beating" the evader toward another), we concatenate a one-hot encoded \textbf{Agent ID} to the local observation input. This breaks the symmetry of the environment and is essential for effective coordination in homogeneous agent swarms.
+
+The individual agent utility for agent $a$ is denoted as $Q^a(\tau^a, u^a)$, where $\tau^a$ is the local action-observation history. In our implementation, we use a Feed-Forward architecture, though recurrent layers could be integrated to better handle partial observability.
+
+\subsection{The Mixing Network}
+The core of QMIX is the mixing network, which combines the individual $Q^a$ values into a global $Q_{tot}$. To ensure that the joint action maximizing $Q_{tot}$ coincides with the set of individual actions maximizing each $Q^a$, the mixer must satisfy a monotonicity constraint:
+\begin{equation}
+    \frac{\partial Q_{tot}(s, \mathbf{u})}{\partial Q^a(\tau^a, u^a)} \ge 0, \forall a \in \{1, \dots, N\}
+\end{equation}
+The mixer is a neural network whose weights are generated by \textbf{Hypernetworks}. These hypernetworks take the global state $s$ as input and produce the weights for the mixing layers. Crucially, the weights are passed through an absolute value function to ensure they remain non-negative, thereby satisfying the monotonicity constraint. The biases of the mixer are produced by standard linear layers conditioned on $s$.
+
+\subsection{Centralized Training, Decentralized Execution (CTDE)}
+The CTDE paradigm is central to our approach:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Centralized Training:} During the training phase, we have access to the global state $s$ (positions of all entities), which is fed into the hypernetworks. The loss is calculated based on the global TD-error: 
+    $\mathcal{L}(\theta) = \mathbb{E} \left[ (Y^{tot} - Q_{tot}(s, \mathbf{u}; \theta))^2 \right]$.
+    \item \textbf{Decentralized Execution:} During deployment, the mixing network and global state are discarded. Each agent selects actions solely by performing $\text{argmax}_{u^a} Q^a(\tau^a, u^a)$. This ensures that coordination is achieved through learned individual policies that are consistent with the global objective.
+\end{itemize}
+
+\subsection{Training Loop and Stability}
+To stabilize training, we incorporate several standard Deep RL enhancements:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Double DQN:} We maintain a target network to reduce overestimation bias in the Q-value updates. The target $Y^{tot}$ is calculated as $r + \gamma Q_{tot}^{target}(s', \mathbf{u}'; \theta^-)$, where $\mathbf{u}'$ are the actions chosen by the online networks.
+    \item \textbf{Experience Replay:} Transitions are stored in a replay buffer to decorrelate data and allow for batch updates.
+    \item \textbf{Epsilon-Greedy Exploration:} We use a linear decay schedule for $\epsilon$, starting at 1.0 and decaying to 0.05 over 80\% of the total training steps to ensure sufficient exploration of the collaborative state space.
+\end{itemize}
+
+\section{Experimental Results}
+\textit{Results and performance analysis will be added upon completion of the training runs.}
+
+\section{Conclusion}
+This work demonstrates that QMIX provides a robust framework for solving the Pursuit-Evasion problem. By utilizing global state information during training, agents learn to coordinate effectively under sparse reward conditions, while maintaining the ability to execute policies independently.
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{references}
+
+\end{document}

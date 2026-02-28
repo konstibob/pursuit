@@ -30,27 +30,25 @@ for key in EXPERIMENTS:
     EXPERIMENTS[key].update(COMMON_PARAMS)
     
 
-# Training Hyperparameters - Optimized for Stability
 TOTAL_EPISODES = 50
 MAX_CYCLES = COMMON_PARAMS["max_cycles"]
-ESTIMATED_TOTAL_STEPS = TOTAL_EPISODES * MAX_CYCLES
-EPSILON_DECAY_STEPS = int(0.53 * ESTIMATED_TOTAL_STEPS)
+EPSILON_DECAY_STEPS = 25000  # Fixed at 50 episodes * 500 steps for consistent behavior
 
 TRAIN_CONFIG = {
-    "lr": 0.0001,             # Reduced from 0.0005 for stability
+    "lr": 0.0005,             # Reverted to 0.0005 for faster convergence
     "gamma": 0.99,
     "batch_size": 32,
     "buffer_size": 50000,
     "epsilon_start": 1.0,
     "epsilon_end": 0.05,
-    "eval_epsilon": 0.05, # Use 0.05 for evaluation to avoid greedy-policy loops
-    "epsilon_decay": EPSILON_DECAY_STEPS, # Calculated dynamically: 0.53 * total_steps
+    "eval_epsilon": 0.05,
+    "epsilon_decay": EPSILON_DECAY_STEPS,
     "target_update_freq": 1000,
     "total_episodes": TOTAL_EPISODES, 
-    "eval_episodes": 5, # how long should the evaluation go? 
-    "num_evaluations": 2, # how many evaluations do we want?
+    "eval_episodes": 5,
+    "num_evaluations": TOTAL_EPISODES // 25,
     "hidden_dim": 64,
     "mixing_embed_dim": 32,
-    "grad_norm_clip": 1.0,     # Reduced from 10.0 to prevent exploding gradients
+    "grad_norm_clip": 1.0,
     "device": "cuda" if torch.cuda.is_available() else "cpu"
 }

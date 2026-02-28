@@ -78,8 +78,6 @@ This script generates plots in the `graphs/` directory, organized as:
 500 vs 200 mal laufen?? 
 
 
-
-
 ANDERE IDEEN: 
 
 - distrubution shift -> Andere umgebung als die auf der ich trainiert habe, wie gut performt der agent dann? 

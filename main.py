@@ -9,13 +9,13 @@ import sys
 import torch
 import os
 
-def run_evaluation(env, agent, logger, eval_id, training_episode):
+def run_evaluation(env, agent, logger, eval_id, training_episode, category="training", num_episodes=None):
     """
     Run an evaluation phase and log results.
     Returns average reward.
     """
-    logger.start_evaluation_phase(eval_id)
-    eval_episodes = TRAIN_CONFIG.get("eval_episodes", 20)
+    logger.start_evaluation_phase(eval_id, category=category)
+    eval_episodes = num_episodes if num_episodes is not None else TRAIN_CONFIG.get("eval_episodes", 20)
     
     total_phase_reward = 0
     
@@ -73,7 +73,6 @@ def select_experiment():
             print("Invalid input. Please enter a number.")
 
 def main(override_exp_id=None):
-    # 0. Rendering Prompt (Interactive mode only)
     render_mode = None
     if override_exp_id is None:
         render_input = input("Do you want to view the experiment (render window)? (y/n): ").lower()
@@ -83,7 +82,6 @@ def main(override_exp_id=None):
         else:
             print("[System] Rendering disabled.")
 
-    # 1. Experiment Selection (Interactive or Batch Override)
     if override_exp_id is not None:
         if override_exp_id in EXPERIMENTS:
             exp_ids = [override_exp_id]
@@ -98,6 +96,34 @@ def main(override_exp_id=None):
         else:
             exp_ids = [selection]
     
+    # --- BATCH CONFIGURATION ---
+    batch_mode = None
+    batch_episodes = None
+    is_batch = (selection == 0)
+
+    if is_batch:
+        print("\n=== Batch Configuration ===")
+        while True:
+            choice = input("Do you want to (e)valuate ALL models or (t)rain ALL new ones? (e/t): ").lower()
+            if choice in ['e', 't']:
+                batch_mode = choice
+                break
+            print("Invalid choice. Please enter 'e' or 't'.")
+        
+        try:
+            if batch_mode == 't':
+                ep_prompt = f"How many episodes do you want to train EACH experiment for? (Default: {TRAIN_CONFIG['total_episodes']}): "
+                default_eps = TRAIN_CONFIG['total_episodes']
+            else:
+                ep_prompt = f"How many episodes do you want to evaluate EACH model for? (Default: {TRAIN_CONFIG.get('eval_episodes', 20)}): "
+                default_eps = TRAIN_CONFIG.get('eval_episodes', 20)
+                
+            ep_input = input(ep_prompt)
+            batch_episodes = int(ep_input) if ep_input.strip() else default_eps
+        except ValueError:
+            print(f"[System] Invalid input. Using default: {default_eps}")
+            batch_episodes = default_eps
+
     # --- EXPERIMENT LOOP ---
     for exp_id in exp_ids:
         exp_config = EXPERIMENTS[exp_id].copy()
@@ -106,38 +132,35 @@ def main(override_exp_id=None):
         print(f" Starting Experiment {exp_id}: {exp_config['name']}")
         print("#"*40)
 
-        # Check for existing model
         existing_dir = ExperimentLogger.check_existing(exp_config["name"])
         
-        start_fresh = True
-        resume_path = None
-        
-        if existing_dir and override_exp_id is None:
-            print(f"\n[System] Found existing trained model in: {existing_dir}")
-            while True:
-                choice = input("Do you want to (e)valuate this model or (t)rain a new one? (e/t): ").lower()
-                if choice == 'e':
-                    start_fresh = False
-                    resume_path = existing_dir
-                    print("[System] Loading existing model for evaluation...")
-                    break
-                elif choice == 't':
-                    start_fresh = True
-                    print("[System] Starting fresh training...")
-                    break
-                else:
-                    print("Invalid choice. Please enter 'e' or 't'.")
-        elif existing_dir and override_exp_id is not None:
+        if is_batch:
+            start_fresh = (batch_mode == 't')
+            resume_path = existing_dir if not start_fresh else None
+        else:
             start_fresh = True
-            print(f"[System] Batch mode: Overwriting existing directory {existing_dir}")
+            resume_path = None
+            if existing_dir:
+                print(f"\n[System] Found existing trained model in: {existing_dir}")
+                while True:
+                    choice = input("Do you want to (e)valuate this model or (t)rain a new one? (e/t): ").lower()
+                    if choice == 'e':
+                        start_fresh = False
+                        resume_path = existing_dir
+                        print("[System] Loading existing model for evaluation...")
+                        break
+                    elif choice == 't':
+                        start_fresh = True
+                        print("[System] Starting fresh training...")
+                        break
+                    else:
+                        print("Invalid choice. Please enter 'e' or 't'.")
         
-        # 2. Initialize Logger
         if start_fresh:
             logger = ExperimentLogger(exp_config) # New folder
         else:
             logger = ExperimentLogger(exp_config, resume_path=resume_path) # Use existing folder
         
-        # 3. Initialize Environment
         env = PursuitEnvWrapper(config=exp_config)
         
         agent = QMIXAgent(
@@ -175,27 +198,36 @@ def main(override_exp_id=None):
         if start_fresh:
             print("\n=== Starting Training Phase ===")
             
-            total_episodes = TRAIN_CONFIG["total_episodes"]
-            num_evaluations = TRAIN_CONFIG.get("num_evaluations", 5)
-            eval_interval = total_episodes // num_evaluations
+            if is_batch:
+                total_episodes = batch_episodes
+            else:
+                try:
+                    ep_input = input(f"How many episodes do you want to train for? (Default: {TRAIN_CONFIG['total_episodes']}): ")
+                    if ep_input.strip():
+                        total_episodes = int(ep_input)
+                    else:
+                        total_episodes = TRAIN_CONFIG["total_episodes"]
+                except ValueError:
+                    print(f"[System] Invalid input. Using default: {TRAIN_CONFIG['total_episodes']}")
+                    total_episodes = TRAIN_CONFIG["total_episodes"]
+
+            epsilon_decay_steps = TRAIN_CONFIG["epsilon_decay"]
+            eval_interval = 25
+            num_evaluations = max(1, total_episodes // eval_interval)
             
             print(f"\n[System] Epsilon Schedule:")
             print(f"  Start: {TRAIN_CONFIG['epsilon_start']}")
             print(f"  End:   {TRAIN_CONFIG['epsilon_end']}")
-            print(f"  Decay Steps: {TRAIN_CONFIG['epsilon_decay']}")
+            print(f"  Decay Steps: {epsilon_decay_steps}")
+            print(f"  Evaluation every {eval_interval} episodes ({num_evaluations} total evaluations)")
             
-            if TRAIN_CONFIG['epsilon_decay'] is None:
-                 print("[WARNING] Epsilon decay is None! Defaulting to 20000.")
-                 agent.epsilon_decay = 20000
-            
-            agent.config["epsilon_decay"] = TRAIN_CONFIG["epsilon_decay"]
+            agent.config["epsilon_decay"] = epsilon_decay_steps
             agent.update_epsilon() 
             
             best_eval_reward = float('-inf')
             
             try:
-                # Pre-Training Evaluation (Eval 0)
-                avg_reward = run_evaluation(env, agent, logger, 0, 0)
+                avg_reward = run_evaluation(env, agent, logger, 0, 0, category="training")
                 logger.log_evaluation_summary(0, 0, avg_reward)
                 
                 if avg_reward > best_eval_reward:
@@ -229,7 +261,7 @@ def main(override_exp_id=None):
     
                     if episode % eval_interval == 0:
                         eval_id = episode // eval_interval
-                        avg_reward = run_evaluation(env, agent, logger, eval_id, episode)
+                        avg_reward = run_evaluation(env, agent, logger, eval_id, episode, category="training")
                         
                         if avg_reward > best_eval_reward:
                             print(f"  -> New Best Model! (Previous Best: {best_eval_reward:.4f})")
@@ -243,11 +275,26 @@ def main(override_exp_id=None):
             except KeyboardInterrupt:
                 print("\nTraining interrupted by user. Saving current model...")
                 logger.save_model(agent, filename="interrupted_model.pt")
-                break # Exit the experiment loop as well
+                break
+            finally:
+                pass
                 
         if not start_fresh:
             print("\n=== Starting Evaluation Only Phase ===")
-            run_evaluation(env, agent, logger, 999, 0)
+            if is_batch:
+                num_eval_episodes = batch_episodes
+            else:
+                try:
+                    eval_ep_input = input(f"How many evaluation episodes? (Default: {TRAIN_CONFIG.get('eval_episodes', 20)}): ")
+                    if eval_ep_input.strip():
+                        num_eval_episodes = int(eval_ep_input)
+                    else:
+                        num_eval_episodes = TRAIN_CONFIG.get('eval_episodes', 20)
+                except ValueError:
+                    print(f"[System] Invalid input. Using default: {TRAIN_CONFIG.get('eval_episodes', 20)}")
+                    num_eval_episodes = TRAIN_CONFIG.get('eval_episodes', 20)
+                
+            run_evaluation(env, agent, logger, "final", 0, category="final", num_episodes=num_eval_episodes)
     
         print(f"\nExperiment {exp_id} Completed!")
         env.close()

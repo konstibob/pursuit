@@ -13,16 +13,6 @@ class ReplayBuffer:
         self.buffer = deque(maxlen=capacity)
     
     def push(self, obs, state, actions, reward, next_obs, next_state, done):
-        """
-        Store a transition.
-        obs: (n_agents, obs_dim)
-        state: (state_dim)
-        actions: (n_agents)
-        reward: float
-        next_obs: (n_agents, obs_dim)
-        next_state: (state_dim)
-        done: bool
-        """
         transition = (obs, state, actions, reward, next_obs, next_state, done)
         self.buffer.append(transition)
     
