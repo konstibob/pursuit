@@ -16,19 +16,18 @@ python main.py
 
 ### Options:
 - **Rendering**: You will be asked if you want to view the simulation window (`y/n`).
-- **Experiment Selection**: 
-    - `1-12`: Run a specific experiment configuration.
-    - `0`: **Run All Experiments** - Executes all 12 experiments sequentially.
+- **Experiment Selection**:
+    - `1-8`: Run a specific experiment configuration.
+    - `0`: **Run All Experiments** - Executes all 8 experiments sequentially.
 
 ---
 
-## 3. Study Design (12 Experiments)
+## 3. Study Design (8 Experiments)
 
 | ID | Grid | Kill Enemies with | Enemy Movement |
 | :--- | :--- | :--- | :--- |
 | **1-4** | 8x8 | Surround/Touch | Freeze/Active |
 | **5-8** | 12x12 | Surround/Touch | Freeze/Active |
-| **9-12** | 16x16 | Surround/Touch | Freeze/Active |
 
 ---
 
@@ -53,36 +52,8 @@ python graph.py
 
 This script generates plots in the `graphs/` directory, organized as:
 - **`mapsize/`**: Compares task difficulty (Surround vs. Touch) for a fixed grid size.
-- **`task/`**: Compares scaling (8x8 -> 16x16) for a fixed task type.
+- **`task/`**: Compares scaling (8x8 -> 12x12) for a fixed task type.
 - **`stability/`**: Individual loss plots for every experiment to verify convergence.
 
 ---
 *Created for the RoboticSensing Module.*
-
----Grade nutze ich noch nen value, der für die execution phase trotzdem random values nutzt. Inwiefern ist das so richtig??? 
-
-- in der präsi nochmal genauer das konzept qmix erkläeren und wie genau die agenten miteinander reden?? 
-
-- global state??? 
-
-- kleiner report 4-8 seiten im märz abgeben! 
-
-- Sturktur der Neuronalen Netzwerken, wie genau mixer netzwerk vs agenten netzwerke ??? 
-
-- probieren zu visualiesern vllt sogar während des trainigs mit web tools
-
-- Future work im paper inkludieren! 
-
-- Präsentation 30 min etwa 
-
-500 vs 200 mal laufen?? 
-
-
-
-
-ANDERE IDEEN: 
-
-- distrubution shift -> Andere umgebung als die auf der ich trainiert habe, wie gut performt der agent dann? 
-Wie hoch ist die performanceeinbußung? 
-
--

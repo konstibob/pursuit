@@ -47,6 +47,7 @@ def load_experiments(base_dir="trained_agents"):
                 "metrics_data": df_metrics
             })
             
+    experiments = [e for e in experiments if e["x_size"] in (8, 12)]
     return experiments
 
 def plot_perspective_a(experiments, output_dir="graphs"):
